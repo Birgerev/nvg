@@ -3,14 +3,14 @@ from picamera import PiCamera
 from time import sleep
 from signal import pause
 
+print("starting camera feed...")
 ##-- SETTINGS --##
-screen_width = 800
-screen_height = 480
-y_offset = 50
-left_middle_offset = 0
-right_middle_offset = 0
+eye_box_size = 330
+box_center_y = 300
+box_middle_offset = 190
 
-screen_middle = int(screen_width/2)
+screen_middle = int(800/2)
+half_box_size = int(eye_box_size/2)
 
 camera = mo.MMALCamera()
 splitter = mo.MMALSplitter()
@@ -18,14 +18,16 @@ render_left = mo.MMALRenderer()
 render_right = mo.MMALRenderer()
 
 #Brigthens image
-camera.control.params[mmal.MMAL_PARAMETER_BRIGHTNESS] = .625
+camera.control.params[mmal.MMAL_PARAMETER_BRIGHTNESS] = .6
 #Sets camera exposure for nighttime
 camera.control.params[mmal.MMAL_PARAMETER_ISO]=800
 
 fx = camera.control.params[mmal.MMAL_PARAMETER_COLOUR_EFFECT]
 fx.u = 32768
 fx.v = 65536
-print(mp.u)
+camera.control.params[mmal.MMAL_PARAMETER_COLOUR_EFFECT] = fx
+
+#print(mp.u)
 
 #AttributeError: 'MMALCamera' object has no attribute 'image_effect'
 #mmal.MMAL_PARAM_IMAGEFX_COLOURPOINT = 0
@@ -34,7 +36,7 @@ print(mp.u)
 
 
 #Set camera formats
-camera.outputs[0].framerate=60
+camera.outputs[0].framerate=30
 camera.outputs[0].framesize=(1080,1080)
 camera.outputs[0].commit()
 
@@ -43,12 +45,13 @@ display_region = render_left.inputs[0].params[mmal.MMAL_PARAMETER_DISPLAYREGION]
 display_region.set = mmal.MMAL_DISPLAY_SET_FULLSCREEN | mmal.MMAL_DISPLAY_SET_DEST_RECT
 display_region.fullscreen = False
 
-#Map renderers on screen space
+#renderer display regions on screen space
 #rect format: (minX, minY, width, height)
-display_region.dest_rect = mmal.MMAL_RECT_T(-40, 80, 400, 400)
+#Left eye render
+display_region.dest_rect = mmal.MMAL_RECT_T((screen_middle - box_middle_offset) - half_box_size, box_center_y - half_box_size, eye_box_size, eye_box_size)
 render_left.inputs[0].params[mmal.MMAL_PARAMETER_DISPLAYREGION]=display_region
-
-display_region.dest_rect = mmal.MMAL_RECT_T(360, 80, 400, 400)
+#Right eye render
+display_region.dest_rect = mmal.MMAL_RECT_T((screen_middle + box_middle_offset) - half_box_size, box_center_y - half_box_size, eye_box_size, eye_box_size)
 render_right.inputs[0].params[mmal.MMAL_PARAMETER_DISPLAYREGION]=display_region
 
 #Connect both renderers to sources
